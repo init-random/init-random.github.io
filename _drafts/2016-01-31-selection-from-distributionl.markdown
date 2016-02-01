@@ -1,17 +1,19 @@
 ---
 layout: post
-title:  "Random Selection From a Distribution"
+title:  "Distribution Sampling"
 date: 2016-01-31 23:28:57 -0500
 categories: algorithms R 
 ---
 
 Algorithms such as [AdaBoost][adaboost] impose a distribution over the dataset, i.e. there is a weight assigned to each record in the training data. Descriptions of these algorithms typically do no indicate how this weighted selection is actually done.
 
-To generalize the problem, the question we are asking is, given an orderd list of items where item i has weight $$w_i$$, how can we randomly select an item from the list subject to the weights? So, if $$w_j$$ has weight 1 and $$w_k$$ has weight 2, then we would expect $$w_k$$ to be independent randomly selected about twice as often as $$w_j$$.
+To generalize this problem, the question we are asking is, given a arbitrary distribution of items $$i$$, where $$i$$ has weight $$w_i$$, how can we sample from this distribution subject to these weights? If $$j$$ has weight $$w_j=1$$ and $$k$$ weight $$w_k=2$$, then we would expect $$k$$ to be independent randomly selected about twice as often as $$j$$. More concretely, a die is uniformly distributed. If we sampled from this distribution 60 times, we would expect to see each side of the die about 10 times. If however, the die was biased, how can we sample from this distribution, i.e. how can we *simulate* rolling the die?
+
+{ % include image.html url="/images/my-cat.jpg" description="My cat, Robert Downey Jr." %}
 
 From here on we assume that the the weights are normalized, that is
 
-$$w_i = \frac{w_i}{\sum_{j=1}^{n}w_j}.$$
+$$\hat{w_i} = \frac{w_i}{\sum_{j=1}^{n}w_j}.$$
 
 We cannot directly select an item subject to the distribution. We can however do so indirectly. Random number generators can easily provide uniform distribution random numbers. So, this is what we will use. The following formula indicates how this may be leveraged.
 

@@ -18,10 +18,19 @@ pre, code {
 
 .site-title {
   background-color: rgba(0, 0, 0, 0);
+  font-size: 24px;
 }
 
 .site-header {
   width: 100%;
+}
+
+.footer-text, .footer-text a {
+  color: #c1c1c1;
+}
+
+.post-title, .post-link {
+  font-variant: small-caps;
 }
 
 .site-header {
@@ -37,7 +46,7 @@ pre, code {
 }
 
 .site-nav {
-  font-size: 26px;
+  font-size: 24px;
 }
 
 .site-nav .page-link:not(:last-child) {
