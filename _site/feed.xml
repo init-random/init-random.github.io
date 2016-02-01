@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Your awesome title</title>
+    <title>chewning.co</title>
     <description>Write an awesome description for your new site here. You can edit this line in _config.yml. It will appear in your document head meta (for Google search results) and in your feed.xml site description.
 </description>
-    <link>http://init-random.github.io/</link>
-    <atom:link href="http://init-random.github.io/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Sat, 30 Jan 2016 13:00:14 -0500</pubDate>
-    <lastBuildDate>Sat, 30 Jan 2016 13:00:14 -0500</lastBuildDate>
+    <link>http://xstatic.chewning.co/</link>
+    <atom:link href="http://xstatic.chewning.co/feed.xml" rel="self" type="application/rss+xml"/>
+    <pubDate>Sun, 31 Jan 2016 20:25:37 -0500</pubDate>
+    <lastBuildDate>Sun, 31 Jan 2016 20:25:37 -0500</lastBuildDate>
     <generator>Jekyll v2.4.0</generator>
     
       <item>
@@ -28,8 +28,8 @@
 
 </description>
         <pubDate>Thu, 28 Jan 2016 23:28:57 -0500</pubDate>
-        <link>http://init-random.github.io/jekyll/update/2016/01/28/welcome-to-jekyll.html</link>
-        <guid isPermaLink="true">http://init-random.github.io/jekyll/update/2016/01/28/welcome-to-jekyll.html</guid>
+        <link>http://xstatic.chewning.co/jekyll/update/2016/01/28/welcome-to-jekyll.html</link>
+        <guid isPermaLink="true">http://xstatic.chewning.co/jekyll/update/2016/01/28/welcome-to-jekyll.html</guid>
         
         
         <category>jekyll</category>
@@ -60,8 +60,8 @@ x &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kp
 
 </description>
         <pubDate>Thu, 28 Jan 2016 23:28:57 -0500</pubDate>
-        <link>http://init-random.github.io/jekyll/update/2016/01/28/random.html</link>
-        <guid isPermaLink="true">http://init-random.github.io/jekyll/update/2016/01/28/random.html</guid>
+        <link>http://xstatic.chewning.co/jekyll/update/2016/01/28/random.html</link>
+        <guid isPermaLink="true">http://xstatic.chewning.co/jekyll/update/2016/01/28/random.html</guid>
         
         
         <category>jekyll</category>

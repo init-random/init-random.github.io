@@ -5,17 +5,27 @@
 # For technical reasons, this file is *NOT* reloaded automatically when you use
 # 'jekyll serve'. If you change this file, please restart the server process.
 
+encoding: UTF-8
+# plugins: plugins
+# safe: false
+keep_files: [MathJax]
+
 # Site settings
-title: Your awesome title
-email: your-email@domain.com
+title: chewning.co
+site.title: chewning.co
+page.title: chewning.co
+
+# email: your-email@domain.com
 description: > # this means to ignore newlines until "baseurl:"
   Write an awesome description for your new site here. You can edit this
   line in _config.yml. It will appear in your document head meta (for
   Google search results) and in your feed.xml site description.
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "http://init-random.github.io" # the base hostname & protocol for your site
-twitter_username: jekyllrb
-github_username:  jekyll
+url: "http://xstatic.chewning.co" # the base hostname & protocol for your site
+# twitter_username: jekyllrb
+github_username: init-random 
 
 # Build settings
 markdown: kramdown
+
+

@@ -1,0 +1,45 @@
+.page-content {
+  background-color: #f5f5f5;
+}
+
+pre, code {
+  background-color: #ddd;
+}
+
+.highlight .c {
+  color: #194;
+}
+
+.site-footer, .site-header, .site-title, .site-title:visited, .site-nav .page-link {
+  background-color: #000;
+  color: #f5f5f5;
+}
+
+
+.site-title {
+  background-color: rgba(0, 0, 0, 0);
+}
+
+.site-header {
+  width: 100%;
+}
+
+.site-header {
+  background-image: url("/images/splash.png");
+  background-repeat: no-repeat;
+  // background-attachment: fixed;
+  background-position: left top; 
+  min-height: 185px;
+}
+
+.serp-article:hover {
+  background-color: #ddd;
+}
+
+.site-nav {
+  font-size: 26px;
+}
+
+.site-nav .page-link:not(:last-child) {
+  margin-right: 0px;
+}
