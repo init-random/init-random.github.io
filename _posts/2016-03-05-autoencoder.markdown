@@ -8,7 +8,7 @@ categories: algorithms R
 This Theano code below is an implementation of the Autoencoder example in the Tom Mitchell book Machine Learning.
 The input for the model is a one-hot encoding of the numbers one through eight. The bottleneck of the model
 is of dimension three. The really interesting thing about this is that what the Autoencoder learns is a base-2 
-representation of these numbers. The last very last part of the code just prints out the learned features in 
+representation of these numbers. The very last part of the code just prints out the learned features in 
 base 10. The numbers are not in order, the network did not learn the concept of "order," but there is a 
 1-to-1 correspondence between the input and the compressed representation---the learned parameters. 
 
