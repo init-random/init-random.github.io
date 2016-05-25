@@ -53,11 +53,11 @@ encoder = net(theta1, x)
 decoder = net(theta2, encoder) 
 
 delta = decoder - x
-fc = T.dot(delta, delta)
+square_error = T.dot(delta, delta)
 
-cost = theano.function(inputs=[x], outputs=fc, 
-                       updates=[(theta1, update(theta1, fc)),
-                                (theta2, update(theta2, fc))])
+cost = theano.function(inputs=[x], outputs=square_error, 
+                       updates=[(theta1, update(theta1, square_error)),
+                                (theta2, update(theta2, square_error))])
 
 get_code = theano.function(inputs=[x], outputs=[encoder])
 
