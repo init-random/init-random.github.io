@@ -1,0 +1,215 @@
+---
+layout: post
+title:  "Building a Convolutional Neural Network for NLP"
+date: 2016-07-24 23:28:57 -0500
+categories: neural_network
+---
+
+{% include img.html img-src="writing-med.jpg" %} 
+
+
+When looking at neural network architecture designs and implementations it can sometimes be hard to make sense
+of their monolithic structure and spaghetti code. When building your own networks it is best to test your assumptions
+along the way and to build your network layer by layer. Do not even worry about performance of the network until
+your implementation matches your expectations. It is very easy to get confused by dimensions,
+hyper-parameters, and input/output shapes. To this end, this post will focus on building a network similar in spirit to [[1]][kim]. 
+Here we will not be concerned about training the neural network, but rather, *building* the network. We will build
+the network using [lasagne][lasagne] and test our expectations at each layer.
+
+The salient features of this network is that it is a convolutional model for text classification. The input into this
+model is sentences. Sentences may be of arbitrary length. The convolutional model accommodates for this and extracts
+constant length features for a given sentence. Raw text sentences may not be given as input into the network. Instead
+we index the vocabulary and each word in the sentence is represented by its index. Let's define some variables we
+will need for the network.
+
+{% highlight python %}
+import numpy as np
+import lasagne
+
+sentence = 'this is certainly the best tasting coffee ever'.split()
+
+vocab = set()
+for w in sentence:
+    vocab.add(w)
+
+vocab_map = {w: idx for idx, w in enumerate(vocab)}
+# {'best': 4, 'certainly': 7, 'coffee': 0, ...
+
+vocab_size = len(vocab_map)
+embedding_size = 3
+
+embeddings = np.random.uniform(-0.5, 0.5, (vocab_size, embedding_size)).astype('float32')
+
+batch_size = None
+channels = 1
+sentence_length = 11
+sentence_height = 1
+num_filters = 31
+word_window = 3
+{% endhighlight %}
+    
+The `sentence` and `vocab_map` is just an example of how you could build a vocabulary index from text. You may want
+to consider scikit-learn's CountVectorizer. The important thing is the `embeddings`, which is a map from the word 
+index to its embedding. Notice the shape of the matrix, this will be passed into the embedding layer.
+An embedding is just a vector representation for a word. Here we use a random initialization.
+See [[1]][kim] for details. `batch_size` is the number of sentences we will use for each training batch; `None` just
+means that it may be of arbitrary length. `channels` is set to 1 here. If this were a convolutional network for images
+`channels` would be 3 and would represent RGB colors of the image. Text is single dimensional so we will keep this as
+1. There are text-related extensions that are possible with channels, but we will not consider those here. Rather we
+can keep this as a placeholder for future extensions. This also means that we will need to lasagne's Conv2DLayer
+instead of Conv1DLayer. The latter does not accommodate for channels. Sentences may be of arbitrary length. For
+a given batch, however, all sentences must be of the same length. As we will see, all sentences will be of length
+`sentence_length` that we provide as input. Shorter sentences will be right-padded to the appropriate length 
+with a special word, like `'<PAD>'`, which will have its own embedding value in the embedding matrix. Below
+is what a single raw batch of size 3 would look like. This tensor would be dimension `(3, sentence_height, sentence_length)`.
+The input tensor for the network will be of the same dimension but each word would be replaced by its index
+in the vocabulary (as in `x_test` below).
+
+<pre>
+this is  certainly the   best     tasting ... &lt;PAD&gt; &lt;PAD&gt; # pad to sentence_length
+that was the       worst sandwich i       ... &lt;PAD&gt; &lt;PAD&gt;
+what did you       think about    the     ... &lt;PAD&gt; &lt;PAD&gt;
+</pre>
+
+
+`num_filters`
+will be the number of filters we use in the convolution. `word_window` is 3 which is the length of the sliding
+window of trigrams as shown below.
+
+<pre>
+        |----------------|
+     |--------------|
+|---------------|
+this is certainly the best tasting ...
+</pre>
+  
+When building a network it is a good idea to use distinct numbers (prime numbers work well). If I defined a number of 
+parameters of value 2 and a particular dimension of an output layer had this value, it would be hard to know which variable 
+the 2 was representing. The parameters we use here are not the ones we will use when we actually train the model.
+We are currently just concerned about the architecture of the network, not its performance. It is also a good idea
+not use "magic" numbers in your code. It is best to have clear variable names for all parameters and not hard-coded
+values, which makes things very hard to debug.
+
+{% highlight python %}
+def build_network(batch_size, sentence_length, input_var,
+                  vocab_size, embedding_size, embeddings, 
+                  word_window, num_filters):
+    channels = 1
+    l_in = lasagne.layers.InputLayer((batch_size, sentence_length), input_var=input_var)
+    embedding = lasagne.layers.EmbeddingLayer(l_in, input_size=vocab_size, 
+                               output_size=embedding_size, W=embeddings)
+    reshape = lasagne.layers.ReshapeLayer(embedding, ([0], channels, 1, # 1 -> sentence_height
+                                          embedding.output_shape[1] * embedding.output_shape[2]))
+
+    conv = lasagne.layers.Conv2DLayer(
+            reshape, num_filters=num_filters, filter_size=(1, word_window * embedding_size), # 1 -> sentence_height
+            stride=(1, embedding_size),
+            nonlinearity=lasagne.nonlinearities.linear,
+            W=lasagne.init.GlorotUniform(), pad=(0, embedding_size))
+    pool = lasagne.layers.MaxPool2DLayer(conv, 
+                                         pool_size=(1, embedding_size * word_window), 
+                                         pad=(0, embedding_size), ignore_border=True)
+
+    flatten = lasagne.layers.shape.FlattenLayer(pool)
+    network = lasagne.layers.DenseLayer(flatten, num_units=2, nonlinearity=lasagne.nonlinearities.softmax)
+
+    return (l_in, embedding, reshape, conv, pool, flatten, network)
+    
+    
+def convolution(a, b):
+    return a @ b[::-1]    
+
+
+def network_prediction(layer, input_var, test_data):
+    layer_prediction = lasagne.layers.get_output(layer, deterministic=True)
+    layer_predict_function = theano.function([input_var], layer_prediction)
+    return layer_predict_function(test_data)    
+{% endhighlight %}
+
+The last two functions are to calculate a convolution and make a prediction respectively. We will use these
+for testing. This is an untrained network, a prediction on this network has no predictive power because we are 
+just using the initial weights, but we can still test architecture assumptions of the network.  Let's go through 
+each layer: `l_in` is the input layer which takes in the sentence indexes. So
+we can test the network we need to define a few more variables. `x` is a symbolic container for the input data. 
+`x_test` is a batch of sample sentences, each value is an index in the vocabulary. Each sentence is right-padded
+to size `sentence_length`. Note the use of `astype` in the network, Theano is particular about the type of variables.
+ 
+{% highlight python %}
+x = T.imatrix().astype('int32')
+ 
+x_test = np.array([[7, 7, 3, 4, 0, 0, 0, 0, 0, 0, 0], [3, 1, 3, 2, 1, 2, 3, 7, 0, 0, 0], [3, 1, 3, 2, 1, 2, 3, 7, 0, 0, 0]]).astype('int32')
+
+l_in, embedding, reshape, conv, pool, flatten, network = build_network(batch_size, sentence_length, x,
+                                                             vocab_size, embedding_size, embeddings, 
+                                                             word_window, num_filters)
+{% endhighlight %}
+
+We test our input assumptions.
+
+{% highlight python %}
+assert x_test.shape == (3, sentence_length) # 3 is the batch_size
+assert network_prediction(l_in, x, x_test).shape == (3, sentence_length)
+{% endhighlight %}
+
+The input `x_test` and the output from `l_in` should be the same.
+
+The next two layers do the embedding lookup and a reshape. The reshape is to put the data into the proper dimensions
+for the convolution. We need the 4D tensor `(batch_size, channels, image_height, image_width)`. Two-dimensional convolutions
+are typically used for images. In our case `(image_height, image_width)` is equivalent to `(sentence_height, sentence_length * embedding_size)`.
+
+{% highlight python %}
+assert network_prediction(embedding, x, x_test).shape == (3, sentence_length, embedding_size)
+assert network_prediction(reshape, x, x_test).shape == (3, channels, sentence_height, sentence_length * embedding_size)
+{% endhighlight %}
+
+The next two layers are the convolution and pooling layers. Notice that the convolution squashes the `channels` but 
+the output is a function of number of filters. The last dimension is `sentence_length`. The
+convolution test looks at one convolution for one filter. Because the network is untrained we can
+ignore the bias, which is zero. The pooling layer extracts
+a constant length feature per filter. This is how we can reduce variable length sentences into constant length
+feature. The pooling used for NLP is typically max pooling over time [[2]][collobert]. The last line tests
+the correct value for the max pooling for a single feature. The last dimension of the pooling is 1, which means
+we extract 1 feature per sentence per filter.
+
+{% highlight python %}
+assert network_prediction(conv, x, x_test).shape == (3, num_filters, sentence_height, sentence_length)
+# last dimension 1: max pooling over time extracts a max over the sentence
+assert network_prediction(pool, x, x_test).shape == (3, num_filters, sentence_height, 1)
+# test calculation of convolution; note we are only using a linear activation function for now
+assert convolution(network_prediction(reshape, x, x_test)[0,0,0,0:9], conv.W.eval()[0,0,0])
+# test max pooling over time calculation
+assert network_prediction(pool, x, x_test)[0, 0, 0, 0] == np.max(network_prediction(conv, x, x_test)[0, 0, 0, :])
+{% endhighlight %}
+
+The last two layers flatten out the pooling layer which then feeds into the final two-class softmax layer.
+
+{% highlight python %}
+assert network_prediction(flatten, x, x_test).shape == (3, num_filters)
+assert network_prediction(network, x, x_test).shape == (3, 2)
+{% endhighlight %}
+
+
+You should make sure to look at the creation of the convolution and pooling in the network. The padding
+and filter size is very important. Changing the padding will change the output shape of the convolution. See
+[[4]][deeplearning4nlp] for a clear explanation.
+
+####Conclusion
+We built a convolutional neural network for text classification. We were not concerned about the performance
+of this network, but rather we tested our expectations at each layer. By not focusing on the learning phase of 
+the network this freed us to use unique variable values, which allowed us to separate architecture of the network
+from its performance as well as to help facilitate understanding of its operations and dimensions.
+By using clear variable names and an avoidance of "magic" (hard-coded) numbers we were able to test our expectations
+with clear variable names instead of confusing hard-coded values.
+
+## References
+* [[1] Convolutional Neural Networks for Sentence Classification, (Kim)][kim]
+* [[2] Natural Language Processing (Almost) from Scratch, (Collobert, et al.)][collobert]
+* [[3] Understanding Convolutional Neural Networks for NLP][wildml]
+* [[4] Deep Learning for NLP][deeplearning4nlp]
+
+
+[kim]: http://arxiv.org/abs/1408.5882
+[collobert]: http://jmlr.org/papers/volume12/collobert11a/collobert11a.pdf
+[wildml]: http://www.wildml.com/2015/11/understanding-convolutional-neural-networks-for-nlp/
+[deeplearning4nlp]: https://github.com/UKPLab/deeplearning4nlp-tutorial/tree/master/2015-10_Lecture/Lecture5
+[lasagne]: http://lasagne.readthedocs.io/ 
