@@ -1,5 +1,6 @@
 ---
 layout: post
+comments: true
 title:  "Simple Autoencoder"
 date: 2016-03-05 23:28:57 -0500
 categories: algorithms R 
@@ -101,3 +102,6 @@ for i in range(8):
     2
 
 So we see that the network learned to represent the input in a 3-dimensional space.
+
+
+{% include comments.md page-identifier="simple_autoencoder" %} 

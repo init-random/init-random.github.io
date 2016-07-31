@@ -10,5 +10,6 @@ Keith Chewning is a Boston-area Data Scientist specializing in machine learning.
 {::comment} [init-random](https://github.com/init-random) {:/comment}
 
 {% include icon-linkedin.html username="keithchewning" %} 
+{% include icon-twitter.html username="keithchewning" %} 
 
 

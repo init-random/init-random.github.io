@@ -1,5 +1,6 @@
 ---
 layout: post
+comments: true
 title:  "VIM Filetype"
 date: 2016-02-07 23:28:57 -0500
 categories: vim
@@ -63,5 +64,7 @@ second line also only looks for completions in the current buffer and the dictio
 SEL<ctrl-n> # compelte SELECT from keywords file
 SELECT pri<ctrl-n> # complete price from schema file
 {% endhighlight %}
+
+{% include comments.md page-identifier="vim_filetype" %} 
 
 [vimdict]: https://github.com/init-random/dotfiles/tree/master/.vim/dict

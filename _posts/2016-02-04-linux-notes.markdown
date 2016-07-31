@@ -2,7 +2,7 @@
 layout: post
 title:  "Linux Notes"
 date: 2016-02-17 23:28:57 -0500
-categories: regression
+categories: linux
 ---
 
 Linux 64-bit firefox build may be found here.
