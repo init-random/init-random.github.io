@@ -20,6 +20,8 @@ Before encapsulating your network in nicely defined functions we can inspect eac
 network incrementally, simplifying the process by breaking the process down into manageable parts.
 We will build the network using [lasagne][ref] and test our expectations at each layer.
 
+The [associated code][test_code] and network implementation can be found on github.
+
 ###The Network
 We will be building a multi-layer convolutional network for natural language processing classification.
 The input into this
@@ -275,4 +277,5 @@ with clear variable names instead of confusing hard-coded values.
 [deeplearning4nlp]: https://github.com/UKPLab/deeplearning4nlp-tutorial/tree/master/2015-10_Lecture/Lecture5
 [lasagne]: http://lasagne.readthedocs.io/ 
 [theano]: http://www.deeplearning.net/software/theano/
+[test_code]: https://github.com/init-random/neural_nlp/tree/master/sentence_classification/test
 [ref]: #references
