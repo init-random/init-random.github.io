@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Language Models</title>
+  <meta name="description" content="The full code from this article can be found here [4]">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/global.css">
+
+  <!-- JS -->
+  <script type="text/javascript" src="/MathJax/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+  <!-- script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script -->
+
+  <link rel="canonical" href="http://xstatic.chewning.co/language/models/probability/2017/01/27/language-model.html">
+  <link rel="alternate" type="application/rss+xml" title="chewning.co" href="http://xstatic.chewning.co/feed.xml">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <!-- a class="site-title" href="/">chewning.co</a -->
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+          <a class="page-link" href="/index.html">&raquo; chewning.co</a> |
+        
+          
+          <a class="page-link" href="/about/">about</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Language Models</h1>
+    <p class="post-meta"><time datetime="2017-01-27T23:28:57-05:00" itemprop="datePublished">01.27.17</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <p>The full code from this article can be found <a href="#references">here [4]</a></p>
+
+<p>In this article we will cover what language models (LM) are and how LMs can provide a probabilistic framework as a basis for 
+many natural language workflows. This LM will not be state of the art, rather it is meant to provide an introduction
+to the topic and to show some common features associated with LMs—smoothing and evaluation. The smoothing
+we will show here is Jelinek and Mercer trigram smoothing, which uses the <a href="#references">EM algorithm [1]</a>. The EM algorithm is
+an underutilized method in machine learning and this will provide an opportunity to show one of its many uses.</p>
+
+<p>In its most basic form, an LM asks either</p>
+
+<script type="math/tex; mode=display">p(w_1, \ldots, w_n)</script>
+
+<p>or</p>
+
+<script type="math/tex; mode=display">p(w_n | w_1, \ldots, w_{n-1}).</script>
+
+<p>In other words, we would like to know the probability of a sequence of words or the probability of a word given the words that precede it—its history or context. Upon first inspection it does not appear that we have gained much by stating these language questions in a probabilistic manner. There are, however, a number of applications that are facilitated by being able to answer these questions.</p>
+
+<ul>
+  <li>Spelling correction: <script type="math/tex">p(the\, store) > p(teh\, store)</script></li>
+  <li>Speech recognition: <script type="math/tex">p(i\, love\, espresso) > p(i\, of\, express\, so)</script></li>
+  <li>Automated translation: <script type="math/tex">p(strong\, winds) > p(power\, winds)</script> given <script type="math/tex">starke\, winde</script></li>
+  <li>Text completion: suggesting the next word, e.g. instant messaging</li>
+  <li>Generative models: create text documents</li>
+  <li>Word embeddings: one “side effect” of LMs in neural networks</li>
+</ul>
+
+<p>As you can see, being able to answer these questions well would greatly help in practical situations. As stated, LMs allow us 
+to assign probabilities to words. This may seem rather unintuitive; for example, what the probability of the sequence 
+<script type="math/tex">firefox\, browser</script>? We may not readily know the answer to this question, but it would make sense that however we assign 
+a probability it should be greater than <script type="math/tex">p(carpet\, chipmunk)</script> which would be a rare phrase.</p>
+
+<p>A first step in developing a probabilistic model would be to do the following.</p>
+
+<script type="math/tex; mode=display">p(meeting | what\, time\, is\, the) = \frac{\#(what\, time\, is\, the\, meeting)}{\#(what\, time\, is\, the)}</script>
+
+<p>where <script type="math/tex">\#(\cdot)</script> is the number of times we saw the phrase in a document. This equality is called the maximum likelihood estimate (MLE). 
+The MLE is calculated by determining the count of the phrase (numerator) from our training data and normalizing this value into a 
+probability (the denominator). You should convince yourself by working out a simple example that this is what this equality 
+indicates. Now, “what time is the meeting” might seem like a common enough phrase, but we could just as well have 
+seen “what time is the exam” which might be less common. It is unlikely that we would be able to account for every 
+possible sentence variation in our training data. Because of this, we cannot assign probabilities to all possible phrases. 
+So, this solution will not scale.</p>
+
+<p>It could be the case that we do not need the full context of the sentence preceding the word in order to make a valid 
+prediction. Maybe using just a few preceding words could be sufficient? This is called the Markov Assumption and if we 
+accept this simplification it will allow us to write probabilities of the form</p>
+
+<script type="math/tex; mode=display">p(meeting | is\, the)</script>
+
+<p>where we only consider a short window as the preceding context, two words in this case. A context of two words is 
+called a <em>trigram model</em> as there are three words used in total. It is now much more likely 
+that we may see these shorter phrases in the training data. Before we look at how the Markov Assumption is utilized, let’s 
+take a look at these probabilities in terms of the Chain Rule. From Bayes rule, for any two events <script type="math/tex">A</script> and <script type="math/tex">B</script>, we have the equality</p>
+
+<script type="math/tex; mode=display">p(AB) = P(B|A)p(A)</script>
+
+<p>where <script type="math/tex">p(AB)</script> is the joint probability of both <script type="math/tex">A</script> and <script type="math/tex">B</script> occurring. To utilize the chain rule, if we had the joint 
+probability <script type="math/tex">p(ABC)</script> then</p>
+
+<script type="math/tex; mode=display">p(ABC) = p(C|AB)p(AB) = p(C|AB)p(B|A)p(A)</script>
+
+<p>which is just an extension of the first equality. Now if we use a bigram Markov Assumption then we see that</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align*}
+   p(what\, time\, is\, the\, meeting) &= p(meeting|what\, time\, is\, the)p(the|what\, time\, is)p(is|what\, time)p(time|what)p(what)\\
+     &\approx p(meeting|the)p(the|is)p(is|time)p(time|what)p(what) 
+\end{align*} %]]></script>
+
+<p>which provides an approximation to the true value, but what we loose in accuracy we gain in generality. In this manner
+we are better able to avert the issues of scale. Given the Markov Assumption we may not have seen “what time is the exam”
+in out training data, but it may be more likely, given less context, that may observe “is the exam.”
+This is the basis 
+for many language models. Now let’s take a look at an initial application of this simple model. We will train the model on 
+Franz Kafka’s <a href="#references">The Trial [2]</a> and use a generative model to create new text that is similar in style to this novel.</p>
+
+<p>First we import some needed classes and define some utility methods to generate training and test sentences. Sentences are 
+padded with <em>xsb</em> and <em>xse</em> which are sentinel values to demarcate beginning and end of sentences.</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">from</span> <span class="nn">sklearn.feature_extraction.text</span> <span class="kn">import</span> <span class="n">CountVectorizer</span>
+<span class="kn">from</span> <span class="nn">spacy.en</span> <span class="kn">import</span> <span class="n">English</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+
+
+<span class="k">def</span> <span class="nf">batch_until</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+    <span class="c"># batch paragraphs</span>
+    <span class="n">batch</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="n">_l</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">_l</span> <span class="o">==</span> <span class="n">condition</span> <span class="ow">and</span> <span class="n">batch</span> <span class="o">!=</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">batch</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">_l</span> <span class="o">==</span> <span class="n">condition</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">batch</span> <span class="o">+=</span> <span class="s">&#39; &#39;</span> <span class="o">+</span> <span class="n">_l</span>
+
+
+<span class="k">def</span> <span class="nf">sentence_gen</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+    <span class="c"># yield sentences</span>
+    <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="n">parser</span><span class="o">.</span><span class="n">pipe</span><span class="p">(</span><span class="n">batch_until</span><span class="p">(</span><span class="n">lines</span><span class="p">),</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_threads</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">doc</span><span class="o">.</span><span class="n">sents</span><span class="p">:</span>
+            <span class="c"># sentinel values for begin/end sentence</span>
+            <span class="k">yield</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;xsb xsb&#39;</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="s">&#39;xse&#39;</span><span class="p">)</span>
+            
+            
+<span class="k">def</span> <span class="nf">tst_idx</span><span class="p">(</span><span class="n">tst_share</span><span class="o">=.</span><span class="mo">05</span><span class="p">):</span>
+    <span class="c"># indexes for test data</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="n">tst_share</span><span class="p">),</span> <span class="n">replace</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+    
+    
+<span class="k">def</span> <span class="nf">trn_tst_split_sentence_gen</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">tst_idx</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="c"># yeild train/test data</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sentence_gen</span><span class="p">(</span><span class="n">lines</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">tst_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">idx</span><span class="o">%</span><span class="mi">100</span><span class="p">)</span> <span class="ow">in</span> <span class="n">tst_idx</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">s</span>
+            <span class="k">elif</span> <span class="n">tst_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">s</span>
+
+
+<span class="n">the_trial</span> <span class="o">=</span> <span class="s">&#39;./data/the_trial.txt&#39;</span>
+
+<span class="c"># sentence recognition can be non-trivial, so use spaCy</span>
+<span class="n">parser</span> <span class="o">=</span> <span class="n">English</span><span class="p">()</span>
+
+<span class="n">trn_sentence_gen</span> <span class="o">=</span> <span class="n">trn_tst_split_sentence_gen</span><span class="p">(</span><span class="n">the_trial</span><span class="p">)</span>
+
+<span class="n">tstidx</span> <span class="o">=</span> <span class="n">tst_idx</span><span class="p">()</span></code></pre></div>
+
+<p>Next we create a word count matrix of the training data.</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">window_size</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">ngram</span> <span class="o">=</span> <span class="n">CountVectorizer</span><span class="p">(</span><span class="n">strip_accents</span><span class="o">=</span><span class="s">&#39;ascii&#39;</span><span class="p">,</span> <span class="n">ngram_range</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">window_size</span><span class="p">),</span> 
+                        <span class="n">lowercase</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">token_pattern</span><span class="o">=</span><span class="s">&#39;(?u)</span><span class="se">\\</span><span class="s">b</span><span class="se">\\</span><span class="s">w+</span><span class="se">\\</span><span class="s">b&#39;</span><span class="p">)</span>
+
+<span class="n">ngram_dtm</span> <span class="o">=</span> <span class="n">ngram</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">trn_sentence_gen</span><span class="p">)</span>
+
+<span class="n">ngram_vocab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ngram</span><span class="o">.</span><span class="n">get_feature_names</span><span class="p">())</span>
+<span class="n">ngram_word_count</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ngram_dtm</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="n">words</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">ngram</span><span class="o">.</span><span class="n">vocabulary_</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="s">&#39; &#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">w</span><span class="p">]</span>
+
+<span class="n">vocab_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span>
+
+<span class="n">_bp</span> <span class="o">=</span> <span class="n">ngram</span><span class="o">.</span><span class="n">build_preprocessor</span><span class="p">()</span>
+<span class="n">_bt</span> <span class="o">=</span> <span class="n">ngram</span><span class="o">.</span><span class="n">build_tokenizer</span><span class="p">()</span>
+<span class="c"># data transformer for test data</span>
+<span class="n">sentence_transformer</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">_bt</span><span class="p">(</span><span class="n">_bp</span><span class="p">(</span><span class="n">ngram</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">s</span><span class="p">)))</span></code></pre></div>
+
+<p>This method will provide the probability of a phrase relative to the training data.</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">ngram_count</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">w</span><span class="p">:</span> <span class="n">vocab_size</span> <span class="k">if</span> <span class="n">w</span><span class="o">==</span><span class="s">&#39;&#39;</span> <span class="k">else</span> <span class="mf">0.0</span> <span class="k">if</span> <span class="n">ngram</span><span class="o">.</span><span class="n">vocabulary_</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">ngram_word_count</span><span class="p">[</span><span class="n">ngram</span><span class="o">.</span><span class="n">vocabulary_</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">w</span><span class="p">)]</span> 
+
+<span class="k">def</span> <span class="nf">ngram_prob</span><span class="p">(</span><span class="n">ngram_str</span><span class="p">,</span> <span class="n">n_words_doc</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">ngram_str</span> <span class="o">==</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+        <span class="c"># 0-gram</span>
+        <span class="k">return</span> <span class="mi">1</span><span class="o">/</span><span class="n">n_words_doc</span>
+    <span class="n">conditioning</span> <span class="o">=</span> <span class="n">ngram_str</span><span class="o">.</span><span class="n">split</span><span class="p">()[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">numer</span> <span class="o">=</span> <span class="n">ngram_count</span><span class="p">(</span><span class="n">ngram_str</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">conditioning</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c"># uni-gram</span>
+        <span class="k">return</span> <span class="n">numer</span><span class="o">/</span><span class="n">n_words_doc</span>
+    <span class="n">conditioning</span> <span class="o">=</span> <span class="n">ngram_count</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">conditioning</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">conditioning</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="c"># out of vocabulary</span>
+        <span class="k">return</span> <span class="n">conditioning</span>
+    <span class="c"># n-gram</span>
+    <span class="k">return</span> <span class="n">ngram_count</span><span class="p">(</span><span class="n">ngram_str</span><span class="p">)</span><span class="o">/</span><span class="n">conditioning</span></code></pre></div>
+
+<p>The iteration below is the EM algorithm, so let’s try and understand what is going on here. First, we create 
+a trigram model of the following form:</p>
+
+<script type="math/tex; mode=display">\tilde{p}(C|AB) = \lambda_0 p(C|AB) + \lambda_1 p(C|A) + \lambda_2 p(C) + \lambda_3 p(V)</script>
+
+<p>which is subject to</p>
+
+<script type="math/tex; mode=display">\Sigma_j  \lambda_j = 1.</script>
+
+<p>So, this is an interpolated estimate of the maximum likelihood trigram model that we saw above. Here</p>
+
+<script type="math/tex; mode=display">p(V) = 1/\#\{words\, in\, document\}</script>
+
+<p>so we can provide a probability for out of vocabulary words. With this interpolated model even it we did not
+see “is the exam” in our training data we will still be able to provide an estimate if we only observed, e.g. “exam.”
+This interpolated model is one example of language <em>smoothing</em>, which allows for a more robust representation 
+of our data. Now the question remains, how do we estimate the lambdas? We will do this with the EM algorithm.</p>
+
+<p>EM may be used to find implicit values in data that were not overtly observed. For example, EM could be used to
+find the means of a multi-modal distribution without knowing these values <em>a priori</em>. EM stands for <em>Expectation Maximization</em>
+and it uses a two-step process. In our use case the expectation will be provide values for the n-grams using the maximum likelihood
+estimate. For example, if the trigram was not seen the its estimate would be zero, similarly we would estimates for the other
+ n-grams. Given the expectation we maximize the lambdas, which in this case is to just
+ normalize the lambdas so they sum to one. This two-step process is iterated over until the stopping condition, 
+ which here we hardcode to five iterations.</p>
+
+<p>Notice below that the lambdas below are tuned on the test data. This is important to use a separate set of data
+because of used the original data the expectation of the trigram would be one and the other values would be zero.
+We need the test data to generalize to unforeseen phrases and words.</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">n_words_doc</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">a</span><span class="o">+</span><span class="n">b</span><span class="p">,</span> <span class="p">[</span><span class="n">ngram_word_count</span><span class="p">[</span><span class="n">ngram</span><span class="o">.</span><span class="n">vocabulary_</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">w</span><span class="p">)]</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">words</span><span class="p">])</span>
+
+<span class="c"># [(&#39;xsb xsb now&#39;, &#39;xsb now&#39;, &#39;now&#39;, &#39;&#39;),</span>
+<span class="c">#  (&#39;xsb now they&#39;, &#39;now they&#39;, &#39;they&#39;, &#39;&#39;), ...]</span>
+<span class="n">to_ngrams</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">[(</span><span class="n">idx</span><span class="o">-</span><span class="mi">3</span><span class="o">+</span><span class="n">_idx</span><span class="p">):</span><span class="n">idx</span><span class="p">])</span> <span class="k">for</span> <span class="n">_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)]</span>
+
+<span class="c"># [[0.010, 0.005, 0.065, 0.000], ...]</span>
+<span class="n">to_ngram_vals</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">ngrams</span><span class="p">:</span> <span class="p">[[</span><span class="n">ngram_prob</span><span class="p">(</span><span class="n">ng</span><span class="p">,</span> <span class="n">n_words_doc</span><span class="p">)</span> <span class="k">for</span> <span class="n">ng</span> <span class="ow">in</span> <span class="n">ngs</span><span class="p">]</span> <span class="k">for</span> <span class="n">ngs</span> <span class="ow">in</span> <span class="n">ngrams</span><span class="p">]</span>
+
+<span class="c"># ls: initial lambda values</span>
+<span class="n">ls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">.</span><span class="mi">25</span><span class="p">,</span><span class="o">.</span><span class="mi">25</span><span class="p">,</span><span class="o">.</span><span class="mi">25</span><span class="p">,</span><span class="o">.</span><span class="mi">25</span><span class="p">])</span>
+
+<span class="c"># 5 iterations over EM</span>
+<span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+    <span class="c"># ngram values</span>
+    <span class="n">ng_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">str_hld</span> <span class="ow">in</span> <span class="n">trn_tst_split_sentence_gen</span><span class="p">(</span><span class="n">the_trial</span><span class="p">,</span> <span class="n">tstidx</span><span class="p">):</span>
+        <span class="n">transformed</span> <span class="o">=</span> <span class="n">sentence_transformer</span><span class="p">(</span><span class="n">str_hld</span><span class="p">)</span>
+        <span class="n">ngrams</span> <span class="o">=</span> <span class="n">to_ngrams</span><span class="p">(</span><span class="n">transformed</span><span class="p">)</span>        
+        <span class="n">ngvals</span> <span class="o">=</span> <span class="n">to_ngram_vals</span><span class="p">(</span><span class="n">ngrams</span><span class="p">)</span>
+        <span class="c"># Expectation</span>
+        <span class="n">expctations</span> <span class="o">=</span> <span class="p">[</span><span class="n">ls</span><span class="o">*</span><span class="n">ngval</span> <span class="k">for</span> <span class="n">ngval</span> <span class="ow">in</span> <span class="n">ngvals</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">expctations</span><span class="p">:</span>
+            <span class="c"># z normalizing constant</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="n">ng_arr</span> <span class="o">+=</span> <span class="n">e</span><span class="o">/</span><span class="n">z</span>
+
+    <span class="c"># Maximization        </span>
+    <span class="n">ls</span> <span class="o">=</span> <span class="n">ng_arr</span><span class="o">/</span><span class="n">ng_arr</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">ls</span><span class="p">)</span>
+
+<span class="c"># lambda values</span>
+<span class="c">#    [  7.72111746e-01   1.89254926e-01   3.84487082e-02   1.84619248e-04]</span>
+<span class="c">#    [  9.27978030e-01   6.83397556e-02   3.68208718e-03   1.26911721e-07]</span>
+<span class="c">#    [  9.76312353e-01   2.31480939e-02   5.39552881e-04   4.86541737e-10]</span>
+<span class="c">#    [  9.91856508e-01   7.87760196e-03   2.65890093e-04   1.18089926e-11]</span>
+<span class="c">#    [  9.96941497e-01   2.81612745e-03   2.42375676e-04   5.77755587e-13]</span></code></pre></div>
+
+<p>Now that we have our lambdas and interpolated trigram model let’s put it to use by generating some text. We trained
+on the The Trial by Franz Kafka. The lead character in this novel is identified by “K.” So, “k” in the generated 
+sentences below are not a mistake, but refers to the character. No punctuation is inserted here, so for instance we see
+“that s” which was treated as two separate words but the model determined that they should be adjacent to each
+other to indicated the single word “that’s.” The model is not perfect it can certainly create run-on sentences as
+seen in the fourth sentence below, but in general the text reads in a similar manner to the novel.</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">gen_word</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+    <span class="n">acc_sum</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">words</span><span class="p">:</span>
+        <span class="n">snt</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+        <span class="n">transformed</span> <span class="o">=</span> <span class="n">sentence_transformer</span><span class="p">(</span><span class="n">snt</span><span class="p">)</span>
+        <span class="n">ngrams</span> <span class="o">=</span> <span class="n">to_ngrams</span><span class="p">(</span><span class="n">transformed</span><span class="p">)</span>        
+        <span class="n">ngvals</span> <span class="o">=</span> <span class="n">to_ngram_vals</span><span class="p">(</span><span class="n">ngrams</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">acc_sum</span> <span class="o">+=</span> <span class="p">(</span><span class="n">ls</span><span class="o">*</span><span class="n">ngvals</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">acc_sum</span><span class="o">&gt;=</span><span class="n">r</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">w</span> <span class="o">==</span> <span class="s">&#39;xsb&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">w</span> <span class="o">==</span> <span class="s">&#39;xse&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s">&#39;.&#39;</span>
+            <span class="k">return</span> <span class="n">w</span>
+
+<span class="k">def</span> <span class="nf">gen_sentence</span><span class="p">():</span>
+    <span class="n">context</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;xsb&#39;</span><span class="p">,</span> <span class="s">&#39;xsb&#39;</span><span class="p">]</span>
+    <span class="n">sent</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">gen_word</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">context</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">w</span> <span class="o">==</span> <span class="n">context</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">continue</span>
+        <span class="n">sent</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">context</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">context</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">w</span>
+        <span class="k">if</span> <span class="n">w</span> <span class="o">==</span> <span class="s">&#39;.&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sent</span><span class="p">)</span>
+
+
+<span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">gen_sentence</span><span class="p">()</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+
+<span class="c"># SAMPLE GENERATED SENTENCES</span>
+<span class="c">#    </span>
+<span class="c">#     that s going to happen again she agreed and smiled at k .</span>
+<span class="c">#     </span>
+<span class="c">#     i ve only been talking about the entrance .</span>
+<span class="c">#     </span>
+<span class="c">#     now then josef he then called across to it he said that as far as could be .</span>
+<span class="c">#     </span>
+<span class="c">#     it was also a man could fall through but it was a very important once you ve worked hard to remember every tiny </span>
+<span class="c">#     action and event from the shock of being admitted in the process is that of course need to consider that the </span>
+<span class="c">#     lawyer he had acted with no result .</span>
+<span class="c">#    </span>
+<span class="c">#     he might do anything about the trial too .</span></code></pre></div>
+
+<p>Without going into too much detail here, it is common that we would want to evaluate our model in some way. A common
+method is to use the measure of <a href="#references">Perplexity [3]</a> for the model. The perplexity of our model is about 4.70, which 
+can be interpreted to mean that on average the model is confused on selection of a word by about five words. In other
+words, the model might be prone to mis-select the perfect next word by randomly choosing between five words. This
+perplexity value is quite low, but this is due to the narrow distribution of the training, i.e. it is not random
+data from disparate sources like the web.</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">tst_n</span> <span class="o">=</span> <span class="mi">0</span> <span class="c"># length normalization</span>
+<span class="n">accum_prob</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="k">for</span> <span class="n">str_hld</span> <span class="ow">in</span> <span class="n">trn_tst_split_sentence_gen</span><span class="p">(</span><span class="n">the_trial</span><span class="p">,</span> <span class="n">tstidx</span><span class="p">):</span>
+    <span class="n">tstrsplt</span><span class="o">=</span><span class="n">sentence_transformer</span><span class="p">(</span><span class="n">str_hld</span><span class="p">)</span>
+    <span class="n">ngrams</span><span class="o">=</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tstrsplt</span><span class="p">[(</span><span class="n">idx</span><span class="o">-</span><span class="mi">3</span><span class="o">+</span><span class="n">_idx</span><span class="p">):</span><span class="n">idx</span><span class="p">])</span> <span class="k">for</span> <span class="n">_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tstrsplt</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)]</span>
+    <span class="n">tst_n</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ngrams</span><span class="p">)</span>
+    <span class="n">ngvals</span><span class="o">=</span><span class="p">[[</span><span class="n">ngram_prob</span><span class="p">(</span><span class="n">ng</span><span class="p">,</span> <span class="n">n_words_doc</span><span class="p">)</span> <span class="k">for</span> <span class="n">ng</span> <span class="ow">in</span> <span class="n">ngs</span><span class="p">]</span> <span class="k">for</span> <span class="n">ngs</span> <span class="ow">in</span> <span class="n">ngrams</span><span class="p">]</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="n">ls</span><span class="o">*</span><span class="n">ngval</span> <span class="k">for</span> <span class="n">ngval</span> <span class="ow">in</span> <span class="n">ngvals</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">_x</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
+        <span class="n">accum_prob</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">_x</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+       
+<span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">accum_prob</span><span class="o">/</span><span class="n">tst_n</span><span class="p">)</span>
+
+<span class="c"># PERPLEXITY</span>
+<span class="c">#    4.7024638719690595</span></code></pre></div>
+
+<h3 id="conclusion">Conclusion</h3>
+
+<p>Here we looked at Language Models and how they can be used to assign probabilities to words and phrases. We
+used an interpolated trigram model whose lambda values were learned by the EM algorithm. We then used the model 
+to train some data and generate text similar to the training data. Finally, we briefly looked at how you
+can evaluate and compare models based on their perplexity value.</p>
+
+<h3 id="references-a-namereferencesa">References <a name="references"></a></h3>
+
+<ul>
+  <li><a href="http://www.gutenberg.org/ebooks/7849">[1] The Trial by Franz Kafka, Project Gutenberg</a></li>
+  <li><a href="https://github.com/init-random/analytics-notebooks/blob/master/src/em_algorithm.ipynb">[2] EM Algorithm Introduction</a></li>
+  <li><a href="https://web.stanford.edu/~jurafsky/slp3/4.pdf">[3] Perlexity</a></li>
+  <li><a href="https://github.com/init-random/analytics-notebooks/blob/master/src/language_model.ipynb">[4] Source Code</a></li>
+</ul>
+
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     */
+    /*
+    var disqus_config = function () {
+        this.page.url = 'http://chewning.co';
+        this.page.identifier = 'language_models';
+    };
+    */
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//chewning.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+  </div>
+
+</article>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+    <div align="center" class="footer-text">
+    This site is built from <a href="https://github.com/jekyll/jekyll">jekyll</a>.
+    </div>
+<!--
+  <div class="wrapper">
+
+    <h2 class="footer-heading">chewning.co</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>chewning.co</li>
+          <li><a href="mailto:"></a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/init-random"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">init-random</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/keithchewning"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">keithchewning</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>Write an awesome description for your new site here. You can edit this line in _config.yml. It will appear in your document head meta (for Google search results) and in your feed.xml site description.
+</p>
+      </div>
+    </div>
+
+  </div>
+-->
+</footer>
+
+
+  </body>
+
+</html>
