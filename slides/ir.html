@@ -1,0 +1,345 @@
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport"  content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="generator" content="Slide Show (S9) v3.3.0 on Ruby 2.2.4 (2015-12-16) [x86_64-linux-gnu]">
+<meta name="author"    content="Keith Chewning">
+
+<title>Building Neural Network Models for<br />Information Retrieval</title>
+
+<!-- Don't alter this, CSSS needs it to work -->
+<link href="slideshow.css" rel="stylesheet">
+
+<!-- Theme-specific styles go here (themes can be reused in multiple talks) -->
+<link href="theme.css" rel="stylesheet">
+
+<!-- Talk-specific styles go here -->
+<!-- GB: changed fixed name (style.css) to variable -->
+<link href="ir.css" rel="stylesheet">
+
+</head>
+<!-- GB: todo: add duration header/property -->
+<body data-duration="50">
+
+<header id="intro" class="slide">
+	<h1>Building Neural Network Models for<br />Information Retrieval</h1>
+	<p class="attribution">Keith Chewning</p>
+</header>
+
+	<!-- section class="slide" id="navigation">
+		<h2>CSSS Navigation</h2>
+		<p>Only through keyboard for now :(</p>
+		<ul>
+			<li>→ or ↓ to advance to the next slide or incrementally displayed item</li>
+			<li>← or ↑ to go to the previous slide or incrementally displayed item</li>
+			<li>Ctrl* + → or Ctrl* + ↓ to jump to the next slide</li>
+			<li>Ctrl* + ← or Ctrl* + ↑ to jump to the previous slide</li>
+			<li>Home to go to the first slide, End to go to the last</li>
+			<li>Ctrl* + G to jump to an arbitrary slide (by slide number or identifier)</li>
+		</ul>
+		<p>* Ctrl or Shift actually. Only Shift works in Opera.</p>
+	</section>
+
+	<section class="slide">
+		<h2>CSSS Navigation Cont.</h2>
+
+		<p>Thumbnail view</p>
+		<ul>
+		  <li>Press Ctrl+H (or Shift+H if you're in Opera) now.</li>
+		  <li>Press Ctrl+Shift+H to see all slides (warning: can be slow!)</li>
+		</ul>
+
+		<p>Presenter view</p>
+		<ul>
+		  <li>This slide has presenter notes. They are only visible in presenter view (Ctrl+P or Shift+P).</li>
+		</ul>
+		<p class="presenter-notes">Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+
+	</section -->
+
+
+  <section class="slide">
+    
+<!-- _S9SLIDE_ -->
+<h1 id="data-queries">Data: Queries</h1>
+<ul>
+  <li>Internet search queries</li>
+  <li>Challenges:
+    <ul>
+      <li>query ambiguity, e.g. baseball strike</li>
+      <li>misspellings, e.g. bleutooth</li>
+      <li>abbreviations, e.g. BSOD, win 8</li>
+      <li>solution ambiguity</li>
+    </ul>
+  </li>
+</ul>
+
+
+
+  </section>
+
+  <section class="slide">
+    <!-- _S9SLIDE_ -->
+<h1 id="data-documents">Data: Documents</h1>
+<ul>
+  <li>Raw HTML pages</li>
+  <li>Challenges
+    <ul>
+      <li>Missing page content</li>
+      <li>HTML page “cleaning”</li>
+      <li>Unicode and non-English text</li>
+    </ul>
+  </li>
+</ul>
+
+
+
+  </section>
+
+  <section class="slide">
+    <!-- _S9SLIDE_ -->
+<h1 id="data-event-logging">Data: Event Logging</h1>
+<ul>
+  <li>Searches</li>
+  <li>Clicks</li>
+  <li>Redirects</li>
+  <li>etc.</li>
+</ul>
+
+
+
+  </section>
+
+  <section class="slide">
+    <!-- _S9SLIDE_ -->
+<h1 id="objectives">Objectives</h1>
+<ul>
+  <li>Model-based document retrieval</li>
+  <li>Generalization to answer other questions then just IR</li>
+  <li>Recommendations may be fuzzy</li>
+</ul>
+
+
+
+  </section>
+
+  <section class="slide">
+    <!-- _S9SLIDE_ -->
+<h1 id="first-models">First Models</h1>
+<p>Do not forget about the simple things</p>
+<ul>
+  <li>Vector space models and TF-IDF</li>
+  <li>Latent Semantic Indexing (LSI)</li>
+</ul>
+
+<p><br />
+Motivation</p>
+<ul>
+  <li>Learn mapping: query space to document space</li>
+</ul>
+
+
+
+  </section>
+
+  <section class="slide">
+    <!-- _S9SLIDE_ -->
+<h1 id="moving-to-neural-networks">Moving to Neural Networks</h1>
+
+<p>LSI-based models</p>
+<ul>
+  <li>Input: LSI query vector</li>
+  <li>Output: LSI document vector</li>
+</ul>
+
+<p><br />
+Word2Vec and Doc2Vec</p>
+<ul>
+  <li>Input: word vector averages, query centroid</li>
+  <li>Alternative input: Doc2Vec query vector</li>
+  <li>Output: document vector</li>
+</ul>
+
+<p><br />
+Challenges</p>
+<ul>
+  <li>Learning arbitrary vectors</li>
+</ul>
+
+
+
+  </section>
+
+  <section class="slide">
+    <!-- _S9SLIDE_ -->
+<h1 id="language-model-architecture-research">Language Model Architecture Research</h1>
+<p>Deep Unordered Composition Rivals Syntactic Methods
+for Text Classification, Iyyer, et al.</p>
+
+<p><img src="dan.png" alt="alt" /></p>
+
+
+
+  </section>
+
+  <section class="slide">
+    <!-- _S9SLIDE_ -->
+<h1 id="language-model-architecture-research-continued">Language Model Architecture Research Continued…</h1>
+<p>Convolutional Neural Networks for Sentence Classification, Yoon Kim</p>
+
+<p><img src="yoon_kim.png" alt="alt" /></p>
+
+
+
+  </section>
+
+  <section class="slide">
+    <!-- _S9SLIDE_ -->
+<h1 id="challenges-with-these-models">Challenges with these models</h1>
+<ul>
+  <li>Embeddings
+    <ul>
+      <li>Use Word2Vec?</li>
+    </ul>
+  </li>
+  <li>Classification models
+    <ul>
+      <li>What are we classifying, documents?</li>
+    </ul>
+  </li>
+  <li>Large number of classes
+    <ul>
+      <li>Potential solution: hierarchical softmax</li>
+    </ul>
+  </li>
+</ul>
+
+
+
+  </section>
+
+  <section class="slide">
+    <!-- _S9SLIDE_ -->
+<h1 id="prior-research-with-ir-models">Prior Research with IR Models</h1>
+<p>Discovering Binary Codes for Documents by Learning Deep Generative Models,
+Hinton, et al.</p>
+
+<p><img src="hinton_auto.png" alt="alt" /></p>
+<ul>
+  <li>Challenges
+    <ul>
+      <li>Vocabulary size is too small</li>
+    </ul>
+  </li>
+</ul>
+
+
+
+  </section>
+
+  <section class="slide">
+    <!-- _S9SLIDE_ -->
+<h1 id="prior-research-with-ir-models-continued">Prior Research with IR Models Continued…</h1>
+<p>Learning Deep Structured Semantic Models for Web Search using Clickthrough Data, Huang, et al.</p>
+
+<p><img src="dssm.png" alt="alt" /></p>
+<ul>
+  <li>Challenges
+    <ul>
+      <li>What about weight sharing?</li>
+      <li>How is a document represented?</li>
+      <li>How is this model used at prediction time?</li>
+    </ul>
+  </li>
+</ul>
+
+
+
+  </section>
+
+  <section class="slide">
+    <!-- _S9SLIDE_ -->
+<h1 id="network-solution">Network Solution</h1>
+<ul>
+  <li>Deep stacked autoencoder, similar to the Hinton architecture</li>
+  <li>Deep: multi-layer network</li>
+  <li>Stacked: layer-wise pre-trained</li>
+  <li>Autoencoder: identity function</li>
+  <li>Model input: character hashing
+    <ul>
+      <li>robust against abbreviations, misspellings, out of vocabulary words</li>
+    </ul>
+  </li>
+</ul>
+
+
+
+  </section>
+
+  <section class="slide">
+    <!-- _S9SLIDE_ -->
+<h1 id="network-solution-continued">Network Solution Continued…</h1>
+<ul>
+  <li>Fine-tuning after layer-wise pre-training</li>
+  <li>Embedding: a latent semantic representation</li>
+  <li>Vector operations on embeddings</li>
+  <li>Training set: queries</li>
+  <li>Documents: query context</li>
+</ul>
+
+
+
+  </section>
+
+  <section class="slide">
+    <!-- _S9SLIDE_ -->
+<h1 id="what-types-of-questions-can-this-type-of-architecture-answer">What types of questions can this type of architecture answer?</h1>
+
+<ul>
+  <li>User query: find other similar queries</li>
+  <li>User query: find most relevant documents</li>
+  <li>Document: find most similar documents</li>
+  <li>Query: document ranking</li>
+  <li>Similarities: use with classification models</li>
+</ul>
+
+
+
+  </section>
+
+  <section class="slide">
+    <!-- _S9SLIDE_ -->
+<h1 id="brbrbrnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbspnbsp"><br /><br /><br />                                                       </h1>
+
+
+  </section>
+
+
+
+<!--
+<footer class="slide">
+	<h2>Thank you!</h2>
+	<p>Closing remarks</p>
+</footer>
+-->
+
+<script src="slideshow.js"></script>
+
+<!-- Make sure the reference to -prefix-free works -->
+<script src="prefixfree.min.js"></script>
+
+<!-- Uncomment the plugins you need
+<script src="plugins/css-edit.js"></script>
+<script src="plugins/css-snippets.js"></script>
+<script src="plugins/css-controls.js"></script>
+-->
+<script>var slideshow = new SlideShow();
+
+</script>
+
+</body>
+</html>
